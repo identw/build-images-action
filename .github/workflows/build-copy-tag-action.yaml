@@ -1,0 +1,46 @@
+name: build-copy-tag-action
+concurrency:
+  group: build-copy-tag-action
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - copy-tag/src/**/*
+      - copy-tag/package*.json
+      - copy-tag/*.js
+
+permissions:
+  contents: write
+
+env:
+  AUTHOR_EMAIL: admin+github-actions@tapclap.com
+  AUTHOR_NAME: 'Github Actions'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+      - uses: actions/setup-node@main
+        with:
+          node-version: 20
+
+      - name: node modules
+        working-directory: ./copy-tag
+        run: npm ci
+
+      - name: build
+        working-directory: ./copy-tag
+        run: npm run build
+
+      - name: commit builded action
+        run: |
+          if git status | grep 'copy-tag/dist/' -q;
+          then
+            git config --global user.email "${AUTHOR_EMAIL}"
+            git config --global user.name "${AUTHOR_NAME}"
+            git add ./copy-tag/dist
+            git commit -m "built action"
+            git push origin ${{ github.ref }}:${{ github.ref }}   
+          fi
