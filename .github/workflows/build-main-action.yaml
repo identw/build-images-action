@@ -14,7 +14,7 @@ permissions:
   contents: write
 
 env:
-  AUTHOR_EMAIL: admin+github-actions@tapclap.com
+  AUTHOR_EMAIL: admin+github-actions@identw.com
   AUTHOR_NAME: 'Github Actions'
 
 jobs:

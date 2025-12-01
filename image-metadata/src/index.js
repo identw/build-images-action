@@ -8,13 +8,20 @@ import {getMetadata, registryParse} from './lib.js';
 async function main() {
   try {
     const context  = github.context;
-    const repoName = context.payload.repository.name.toLowerCase();
+    const defaultRepoName = context.payload.repository.name.toLowerCase();
 
     const registry         = core.getInput('registry');
     const registryUser     = core.getInput('registry-user');
     const registryPassword = core.getInput('registry-password');
     const tag              = core.getInput('tag');
     const images           = yamlParse(core.getInput('images'));
+    let   repoName         = core.getInput('repo-name');
+
+    if (repoName === '') {
+      repoName = defaultRepoName;
+    }
+    repoName = repoName.toLowerCase();
+    repoName = repoName.replaceAll('{{ repo }}', defaultRepoName);
 
     let labels = {};
     let metadata = {};

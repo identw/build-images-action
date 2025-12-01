@@ -23,10 +23,22 @@ inputs:
   operation:
     description: '<push|build|build-and-push>'
     required: true
+  ci:
+    description: 'only build with tmp tag'
+    required: false
+    default: 'false'
+  ci-tag:
+    description: 'tmp tag for ci build'
+    required: false
+    default: '{{ commit }}'
   latest:
     description: 'latest tag'
     required: false
     default: 'false'
+  repo-name:
+    description: 'override repo name'
+    required: false
+    default: ''
   cache-from:
     description: 'cache from https://docs.docker.com/build/ci/github-actions/cache/'
     required: false
@@ -39,6 +51,7 @@ inputs:
     description: 'github token'
     required: false
     default: ''
+
 outputs:
   copy-files:
     description: 'copy files'
@@ -74,6 +87,7 @@ runs:
         registry: ${{ inputs.registry }}
         username: ${{ inputs.registry-user }}
         password: ${{ inputs.registry-password }}
+
     - name: images
       uses: identw/build-images-action/js-action@main
       id: images
@@ -81,9 +95,12 @@ runs:
         build-opts: ${{ inputs.build-opts }}
         registry: ${{ inputs.registry }}
         tag: ${{ inputs.tag }}
+        ci: ${{ inputs.ci }}
+        ci-tag: ${{ inputs.ci-tag }}
         operation: ${{ inputs.operation }}
         platforms: ${{ inputs.platforms }}
         github-token: ${{ inputs.github-token }}
         latest: ${{ inputs.latest }}
         cache-from: ${{ inputs.cache-from }}
         cache-to: ${{ inputs.cache-to }}
+        repo-name: ${{ inputs.repo-name }}

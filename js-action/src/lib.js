@@ -1,18 +1,30 @@
 import { execSync } from 'child_process';
 import {existsSync, rmdirSync, mkdirSync} from 'fs';
+import * as github from '@actions/github'
 // import fetch from 'node-fetch';
 
 
-export function runCommand(command, exit = true) {
+export async function runCommand(command, retries = 1, exit = true) {
+  let retryTimeout = 5000;
+  while (retries > 0) {
     try {
         console.log('\x1b[34m%s\x1b[0m',`run command: ${command}`);
         execSync(command, { stdio: 'inherit' });
+        break;
       } catch (error) {
+        retries -= 1;
+        if (retries > 0) {
+            console.warn(`Command "${command}" failed. Retries left: ${retries}. Retrying in ${retryTimeout/1000} seconds...`);
+            await sleep(retryTimeout);
+            retryTimeout *= 2; 
+            continue;
+        }
         console.error(`Command "${command}" failed with error: ${error.message}`);
         if (exit) {
             process.exit(1);
         }
     }
+  }
 }
 
 export function generateRandomString(length) {
@@ -60,6 +72,54 @@ async function makeRequest(url, options) {
     r = '';
   }
   return r;
+}
+
+export function getCurrentUtcTimestamp() {
+  const now = new Date();
+
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, '0'); // месяцы с 0
+  const day = String(now.getUTCDate()).padStart(2, '0');
+  const hours = String(now.getUTCHours()).padStart(2, '0');
+  const minutes = String(now.getUTCMinutes()).padStart(2, '0');
+
+  return `${year}${month}${day}${hours}${minutes}`;
+}
+
+export function normalizeRefName(str) {
+  if (str.includes('/')) {
+    const parts = str.split('/');
+    return parts.pop(); 
+  }
+  return str;
+}
+
+export function template(str) {
+  const context     = github.context;
+  const shortCommit = context.sha.slice(0, 10);
+  let refName       = normalizeRefName(context.ref);
+  
+  if (typeof str !== "string") {
+    str = String(str); 
+  }
+
+  let pr = 'manual';
+  if (context.eventName === 'pull_request') {
+    pr = context.payload.pull_request.number;
+    refName = context.payload.pull_request.head.ref;
+  }
+
+  str = str.replaceAll("{{ commit }}", shortCommit);
+  str = str.replaceAll("{{ dateTime }}", getCurrentUtcTimestamp());
+  str = str.replaceAll("{{ ref }}", refName);
+  str = str.replaceAll("{{ pr }}", pr);
+
+  return str;
+
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
   
 // export async function ghcrDeleteVersion(org, repo, token, version) {

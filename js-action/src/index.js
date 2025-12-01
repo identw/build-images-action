@@ -1,3 +1,4 @@
+import 'source-map-support/register.js';
 import * as core from '@actions/core';
 import * as github from '@actions/github'
 import { parse as yamlParse} from 'yaml';
@@ -5,34 +6,56 @@ import * as path from 'path';
 import { Worker, isMainThread, workerData } from 'worker_threads';
 
 // import {Util} from '@docker/actions-toolkit/lib/util';
-import {generateRandomString, runCommand, createDir} from './lib.js';
+import {generateRandomString, runCommand, createDir, template} from './lib.js';
 
 
 async function main() {
   try {
     const context         = github.context;
     const registry        = core.getInput('registry');
-    const gtihubToken     = core.getInput('github-token');
+    const githubToken     = core.getInput('github-token');
     const tag             = core.getInput('tag');
     const latest          = core.getInput('latest');
-    const operation       = core.getInput('operation');
+    let operation         = core.getInput('operation');
     const platforms       = core.getInput('platforms');
     const cacheFrom       = core.getInput('cache-from');
     const cacheTo         = core.getInput('cache-to');
-    const repoName        = context.payload.repository.name.toLowerCase();
+    const ci              = core.getInput('ci');
+    const ciTag           = core.getInput('ci-tag');
+    let   repoName        = core.getInput('repo-name');
     const org             = context.payload.repository.owner.login.toLowerCase();
     const buildOpts       = yamlParse(core.getInput('build-opts'));
     const githubRegistry  = 'ghcr.io';
 
+    const defaultRepoName = context.payload.repository.name.toLowerCase();
+
+    if (core.isDebug()) {
+      console.log('### DEBUG GitHub context ###');
+      console.log(JSON.stringify(github, null, 2));
+    }
+
+    if (repoName === '' || registry == githubRegistry) {
+      repoName = defaultRepoName;
+    }
+    repoName = repoName.toLowerCase();
+    repoName = repoName.replaceAll('{{ repo }}', defaultRepoName);
 
     if (!isMainThread) {
       // Worker треды:
       const { image } = workerData;
       for (const cmd of image.push) {
-        runCommand(cmd);
+        runCommand(cmd, 5);
       }
       process.exit(0);
     }
+
+    let resultTag = tag
+    if (ci === 'true') {
+      resultTag = ciTag;
+      operation = 'build';
+    }
+
+    resultTag = template(resultTag);
 
     core.setOutput('build-opts', core.getInput('build-opts'));
     console.log(`buildOpts: ${JSON.stringify(buildOpts, null, 2)}`);
@@ -46,7 +69,7 @@ async function main() {
         image['operation'] = 'build-and-push';
       }
 
-      let buildTag = tag;
+      let buildTag = resultTag;
       if (image.operation === 'build') {
         buildTag = `0000001-${generateRandomString(8)}`;
       }
@@ -54,13 +77,13 @@ async function main() {
       let buildImage      = `${registry}/${repoName}/${image.name}:${buildTag}`;
       const buildTmpTag   = `${image.name}-${generateRandomString(8)}`;
       let prePushImageTag = `0000001-${generateRandomString(8)}`;
-      let pushImage       = `${registry}/${repoName}/${image.name}:${tag}`;
+      let pushImage       = `${registry}/${repoName}/${image.name}:${resultTag}`;
       let pushImageLatest = `${registry}/${repoName}/${image.name}:latest`;
       let prePushImage    = `${registry}/${repoName}/${image.name}:${prePushImageTag}`;
 
       if (registry == githubRegistry) {
         buildImage      = `${registry}/${org}/${repoName}:${image.name}-${buildTag}`;
-        pushImage       = `${registry}/${org}/${repoName}:${image.name}-${tag}`;
+        pushImage       = `${registry}/${org}/${repoName}:${image.name}-${resultTag}`;
         pushImageLatest = `${registry}/${org}/${repoName}:${image.name}-latest`;
         prePushImage    = `${registry}/${org}/${repoName}:${image.name}-${prePushImageTag}`;
         prePushImageTag = `${image.name}-${prePushImageTag}`;
@@ -68,13 +91,13 @@ async function main() {
 
       if ('repo-image-name' in image && image['repo-image-name'] === true) {
         buildImage      = `${registry}/${repoName}:${buildTag}`;
-        pushImage       = `${registry}/${repoName}:${tag}`;
+        pushImage       = `${registry}/${repoName}:${resultTag}`;
         pushImageLatest = `${registry}/${repoName}:latest`;
         prePushImage    = `${registry}/${repoName}:${prePushImageTag}`;
 
         if (registry == githubRegistry) {
           buildImage      = `${registry}/${org}/${repoName}:${buildTag}`;
-          pushImage       = `${registry}/${org}/${repoName}:${tag}`;
+          pushImage       = `${registry}/${org}/${repoName}:${resultTag}`;
           pushImageLatest = `${registry}/${org}/${repoName}:latest`;
           prePushImage    = `${registry}/${org}/${repoName}:${prePushImageTag}`;
         }
@@ -102,7 +125,8 @@ async function main() {
       let args = '';
       if ('args' in image) {
         args = image.args.reduce((a,v) => {
-          return a + ' --build-arg ' + v.name + '=' + '"' + v.value + '"';
+          const value = template(v.value);
+          return a + ' --build-arg ' + v.name + '=' + "'" + value + "'";
         }, '');
       }
 
@@ -147,7 +171,7 @@ async function main() {
       }
       if (resultCacheTo != '') {
         if (resultCacheTo.includes('type=gha')) {
-          resultCacheTo = `${resultCacheTo},ghtoken=${gtihubToken}`;
+          resultCacheTo = `${resultCacheTo},ghtoken=${githubToken}`;
         }
         originCacheTo = resultCacheTo;
         resultCacheTo = `--cache-to ${resultCacheTo}`;
@@ -293,7 +317,7 @@ async function main() {
         allPushImages.push(image.tags.prePush);
 
         for (const cmd of image.prePush) {
-          runCommand(cmd);
+          runCommand(cmd, 5);
         }
       }
 

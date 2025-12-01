@@ -1,17 +1,17 @@
 # build images action
 
-Builds docker images.
+Собирает docker образы.
 
-## Examples
+## Примеры
 
-### Building two images nginx and server
+### Сборка двух образов nginx и server
 
-Dockerfiles must be located in folders with the same name in the `docker` directory. In other words, the following structure
+Dockerfile'ы должны находится в одноименных папках в директории `docker`. Другими словами такое вот расположение
 ```
 ./docker/server/Dockerfile
 ./docker/nginx/Dockerfile
 ```
-The `server` image also needs to pass the `PLATFORM` and `ENV` arguments. The resulting image names will be formed according to the following principle: `<registry>/<repo-name>/<image-name>:<tag>`, where `<repo-name>` is the repository name in lowercase.
+Также образу `server` нужно передать аргументы `PLATFORM` и `ENV`. Имена результирующих образов будут сформированы по следующему принципу: `<registry>/<repo-name>/<image-name>:<tag>`, где `<repo-name>` - имя репозитория в нижнем регистре.
 
 ```yaml
 # nosemgrep
@@ -33,9 +33,9 @@ The `server` image also needs to pass the `PLATFORM` and `ENV` arguments. The re
       - name: nginx
 ```
 
-The tag field supports basic templating ([details](#tag))
+В поле tag поддерживается небольшая шаблонизация ([подробности](#tag))
 
-If ghcr.io is passed as the registry, the image names will be formed according to the following principle: `ghcr.io/<org-name>/<repo-name>:<image-name>-<tag>`:
+Если в качестве registry будет передан ghcr.io, то имена образов будут формироваться по следующему принципу: `ghcr.io/<org-name>/<repo-name>:<image-name>-<tag>`:
 ```yaml
 # nosemgrep
 - uses: identw/build-images-action@main
@@ -55,13 +55,13 @@ If ghcr.io is passed as the registry, the image names will be formed according t
             value: ${{ inputs.env }}
       - name: nginx
 ```
-The following images will be built:  
+Будут собраны образы:  
 1. `ghcr.io/org-name/repo-name:server-<tag>`
 1. `ghcr.io/org-name/repo-name:nginx-<tag>`
 
-### Separating build and push steps to registry and copying files from images
+### Разделение шагов сборки и пуша в registry и копирование файлов из образов
 
-Sometimes it's necessary to copy a file from a built image and perform some actions with it:
+Бывает необходимо скопировать файл из собранного образа и выполнить какие-то с ним действия:
 ```yaml
 # nosemgrep
 - uses: identw/build-images-action@main
@@ -102,7 +102,7 @@ Sometimes it's necessary to copy a file from a built image and perform some acti
     build-opts: ${{ steps.build-images.outputs.build-opts }}
 ```
 
-### Building multiple images from one Dockerfile but with different targets
+### Сборка нескольких образов из одного Dockerfile но с разными target
 ```yaml
 # nosemgrep
 - uses: identw/build-images-action@main
@@ -122,8 +122,8 @@ Sometimes it's necessary to copy a file from a built image and perform some acti
         target: migrations
 ```
 
-### If you need to run a built container after the build
-The action returns an output `built-images`, which can be used to run just-built containers:
+### Если нужно запустить собранный контенйер после билда
+Action возвращает output `built-images`, который можно использовать для запуска только что собранных контейнеров:
 ```yaml
 - uses: identw/build-images-action@main
   id: build-images
@@ -142,10 +142,10 @@ The action returns an output `built-images`, which can be used to run just-built
     docker run --rm -v $(pwd):/app --workdir /app ${IMAGE} ./build.sh
 ```
 
-### Passing secrets
-If we want to use the https://docs.docker.com/build/building/secrets/ functionality, we need to pass the `secrets` field
+### Прокидываем секреты
+Если хотим использовать функцию https://docs.docker.com/build/building/secrets/, то нужно передать поле `secrets`
 
-Docker secrets supports the ability to pass secrets through environment variables, so there is an `envs` field that allows creating environment variables before running `docker build` to pass them to secrets with `type=env`
+docker secrets поддерживает возможность передавать секреты через енвы, поэтому  предусмотрено поле `envs`, которое позволяет создать перменные среды перед запуском `docker build` чтобы прокинуть их в секреты `type=env`
 ```yaml
 # nosemgrep
 - uses: identw/build-images-action@main
@@ -173,7 +173,7 @@ RUN --mount=type=secret,id=GITHUB_USER,env=GITHUB_USER \
     --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     make build
 ```
-Second example
+Второй пример
 
 ```yaml
 - uses: identw/build-images-action@main
@@ -206,8 +206,8 @@ Second example
         - name: BACKEND_URL
           value: ${{ inputs.backend-url }}
 ```
-In the example, we pass the secrets `ANDROID_KEYSTORE`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEYSTORE_ALIAS`, `SUPPLY_JSON_KEY`, where `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEYSTORE_ALIAS` are passed through environment variables, and `ANDROID_KEYSTORE`, `SUPPLY_JSON_KEY` are passed through files. 
-In the Dockerfile, secrets can be used as follows
+В примере мы прокидываем секреты `ANDROID_KEYSTORE`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEYSTORE_ALIAS`, `SUPPLY_JSON_KEY`, где `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEYSTORE_ALIAS` пробрасываются через переменные среды, а  `ANDROID_KEYSTORE`, `SUPPLY_JSON_KEY` пробрасываются через файлы. 
+В Dockerfile использовать секреты можно таким образом
 
 ```dockerfile
 RUN --mount=type=secret,id=ANDROID_KEYSTORE \
@@ -218,10 +218,10 @@ RUN --mount=type=secret,id=ANDROID_KEYSTORE \
     && export SUPPLY_JSON_KEY=/run/secrets/SUPPLY_JSON_KEY \
     make build
 ```
-See more details in the docker secrets documentation: https://docs.docker.com/build/building/secrets/
+Подробнее смотрите в документации по docker secrets: https://docs.docker.com/build/building/secrets/
 
-### Specifying multiple platforms for build
-specify `platforms` for building all images
+### Указываем несколько платформ для билда
+указываем `platforms` для сборки всех образов
 ```yaml
 - uses: identw/build-images-action@main
   id: build-images
@@ -236,7 +236,7 @@ specify `platforms` for building all images
       - name: image
 ```
 
-specify `platforms` for a specific image
+указываем `platforms` для определенного образа
 ```yaml
 - uses: identw/build-images-action@main
   id: build-images
@@ -252,8 +252,8 @@ specify `platforms` for a specific image
       - name: image2
 ```
 
-### latest tag
-Sometimes you want to push an additional latest tag along with the specified tag. To do this, simply add the `latest: true` parameter
+###  latest тег
+Иногда хочется помимо указанного тега сделать так чтобы пушился ещё latest тег. Для этого просто добавляем параметр `latest: true`
 
 ```yaml
 # nosemgrep
@@ -276,7 +276,7 @@ Sometimes you want to push an additional latest tag along with the specified tag
       - name: nginx
 ```
 
-You can also do the same at the image level in `build-opts`
+Тоже самое можно делать на уровне образа в `build-opts`
 ```yaml
 # nosemgrep
 - uses: identw/build-images-action@main
@@ -299,7 +299,7 @@ You can also do the same at the image level in `build-opts`
 ```
 
 ### cache
-You can use cache-from and cache-to
+Можно использовать cache-from и cache-to
 
 ```yaml
 # nosemgrep
@@ -323,15 +323,15 @@ You can use cache-from and cache-to
       - name: nginx
 ```
 
-If ghcr.io is used, then in the case of multiple images, the latest tag will be pushed as follows: `ghcr.io/<org-name>/<repo-name>:<image-name>-latest`
+Если будет использоваться ghcr.io, то в случае нескольких образов latest тег будет запушен следующим образом: `ghcr.io/<org-name>/<repo-name>:<image-name>-latest`
 
-### image = repository name
+### образ = имени репозитория
 
-To push an image with the repository name without additional suffixes, i.e., in the following way
+Чтобы пушить образ с именем репы без дополнительных постфиксов, то есть таким образом
 1. `<registry>/<repo-name>:<tag>`
 1. `ghcr.io/<org-name>/<repo-name>:<tag>`
 
-you can use the `repo-image-name` option
+можно воспользоваться опцией `repo-image-name`
 
 ```yaml
 # nosemgrep
@@ -354,13 +354,13 @@ you can use the `repo-image-name` option
       - name: nginx
 ```
 
-The following images will be built
+Будут собраны образы
 
 1. `<registry>/<repo-name>:<tag>` - server
 1. `<registry>/<repo-name>/nginx:<tag>` - nginx
 
-### changing the repository name
-Usually, the image name is formed according to the principle: `<registry>/<repo-name>/<image-name>:<tag>`, where `<repo-name>` is the repository name in lowercase. If you pass the `repo-name` parameter, this part of the name will be replaced with the specified value (also in lowercase).
+### меняем имя репозитория
+Обычно имя образа формируется по принципу: `<registry>/<repo-name>/<image-name>:<tag>`, где `<repo-name>` - имя репозитория в нижнем регистре. Если передать параметр `repo-name` то эта часть в имени будет замененеа на указанное значение (тоже в нижнем регистре).
 
 ```yaml
 - uses: identw/build-images-action@main
@@ -375,11 +375,11 @@ Usually, the image name is formed according to the principle: `<registry>/<repo-
     build-opts: |
       - name: server
 ```
-As a result, the following name will be formed: `<registry>/override/repo-name/server:latest`
+В результате будет сформировано такое имя: ``<registry>/override/repo-name/server:latest`
 
-If the standard registry `ghcr.io` is used, this option has no effect. `repo-name` will be equal to the repository name.
+В случае использования стандартного registry `ghcr.io` эта опция не на что не влияет. `repo-name` будет равен имени репозитория.
 
-The parameter supports basic templating:
+Параметр поддерживает небольшую шаблоинзацию:
 ```yaml
 - uses: identw/build-images-action@main
   id: build-images
@@ -394,12 +394,12 @@ The parameter supports basic templating:
       - name: server
 ```
 
-As a result, the following name will be formed: `<registry>/repo-name/override/server:latest`
+В результате будет сформировано такое имя: ``<registry>/repo-name/override/server:latest`
 
 
 ### CI
 
-Often there is a task to simply build images for CI checks. They usually don't need to be pushed and there's no need to set special tags. Therefore, you have to add logic to the workflow for different launch modes and specify different tags depending on input parameters. For example:
+Часто возникает задача просто собрать образы для проверок в CI. Их обычно пушить не требуется и также какие-то особые теги выставлять не нужно. Поэтому приходится добавлять логику в workflow для разных режимов его запска, и указывать разные теги в зависимости от входных параметров. Например:
 
 ```yaml
     - name: vars
@@ -450,7 +450,7 @@ Often there is a task to simply build images for CI checks. They usually don't n
               - name: REF
                 value: ${{ github.ref_name }}
 ```
-But this can be simplified by simply setting the `ci` parameter to `true`:
+Но это можно упростить просто выставив параметр `ci` в `true`:
 
 ```yaml
     - name: vars
@@ -486,11 +486,11 @@ But this can be simplified by simply setting the `ci` parameter to `true`:
               - name: REF
                 value: ${{ github.ref_name }}
 ```
-when we set `ci` to `true`, the action doesn't push images (i.e., operation is essentially equal to `build`), and the tag will be equal to the short sha of the commit. The tag can be changed via the `ci-tag` option.
+когда мы выставляем `ci` равным `true`, action не пушит образы (то есть operation считай что равен `build`), а tag будет равен short sha коммита. tag можно менять через опцию `ci-tag`.
 
-### arguments support templating
+### аргументы поддерживают шаблонизацию
 
-Just like in tags, you can use templates in image build arguments
+Также как и в тегах можно использовать шаблоны в аргументах сборки образа
 
 ```yaml
     # nosemgrep
@@ -518,56 +518,56 @@ Just like in tags, you can use templates in image build arguments
 ## Inputs
 
 ### `registry`
-Registry, specify without protocol (for example `example.com/registry`)
+registry, указывать без протокола (например `example.com/registry`)
 
 ### `registry-user`
-User for authentication in the registry
+Пользователь для аутентификации в registry
 
 ### `registry-password`
-Password for authentication in the registry
+Пароль для аутентификации в reigstry
 
 ### `tag`
-Image tag. Supports basic templating:
+Тег образов. Поддерживает небольшую шаблонизацию:
 
-1. `{{ commit }}` - short sha of the commit
-1. `{{ dateTime }}` - date and time in UTC in `YYYYMMDDhhmm` format
-1. `{{ ref }}` - branch or tag name (without refs/heads)
-1. `{{ pr }}` - if this is a build triggered by a PR event, the request number is substituted, otherwise `manual`
+1. `{{ commit }}` -  short sha коммита
+1. `{{ dateTime }}` - дата и время в UTC в формате `YYYYMMDDhhmm` 
+1. `{{ ref }}` - имя ветки или тега (без refs/heads)
+1. `{{ pr }}` - если это сборка по событию PR, то подставляется номер реквеста, иначе `manual`
 
-Example: `tag: '${{ inputs.area }}-{{ dateTime }}-{{ ref }}-{{ commit }}'`
+Пример: `tag: '${{ inputs.area }}-{{ dateTime }}-{{ ref }}-{{ commit }}'`
 
 
 ### `operation`
-Can be equal to `build`, `push`, `build-and-push`. If equal to `build`, images will be built but not pushed to the registry. If `push`, the action will simply push images (it is expected that images are built for the specified tag). `build-and-push` immediately builds images and pushes them
+Может быть равен `build`, `push`, `build-and-push`. Если равен `build`, то будут собраны образы, но не запушены в registry. Если `push` то action будет просто пушить образы (ожидается что для указанного тега образы собраны). `build-and-push` сразу билдит образы и пушит их
 
 ### `platforms`
 `default: ''`
-List of platforms that will be substituted into the build command via the `--platform` argument. Platforms should be comma-separated. Example: `linux/amd64,linux/arm64`. Documentation https://docs.docker.com/build/building/multi-platform/. This parameter can be overridden at the image level in `build-opts`.
+Список платформ которые будут подставляться в команду сборки через аргумент `--platform`. Платформы должны перичислены через запятую. Пример: `linux/amd64,linux/arm64`. Документация https://docs.docker.com/build/building/multi-platform/. Этот параметр может быть переопределен на уровне образа в `build-opts`.
 
 ### `latest`
 `default: false`
-Whether to additionally push the latest tag or not. This parameter can be overridden at the image level in `build-opts`.
+Пушить дополнительно latest тег или нет. Этот параметр может быть переопределен на уровне образа в `build-opts`.
 
 ### `repo-name`
 `default: ''`
-Overwrites the part of the image name where the repository name is substituted: `<registry>/<repo-name>/<image-name>:<tag>`. If this option is specified, the `<repo-name>` part will be replaced. Basic templating is supported:
+Перезаписывает часть имени образа куда подставляется имя репозитория: `<registry>/<repo-name>/<image-name>:<tag>`. Если указать эту опцию то будет заменена часть `<repo-name>`. Поддерживается небольшая шаблонизация:
 
-1. `{{ repo }}` - current repository name (without owner or organization)
+1. `{{ repo }}` - имя текущего репозитория (без owner'а или организации)
 
-If the standard registry `ghcr.io` is used, this option has no effect. `repo-name` will be equal to the repository name.
+В случае использования стандартного registry `ghcr.io` эта опция не на что не влияет. `repo-name` будет равен имени репозитория.
 
 ### `ci`
 `default: 'false'`
-If equal to `'true'`, `operation` is forcibly set to `build`, and tag is set to `ci-tag`
+Если равен `'true'`, `operation` принудительно выставляется в `build`, а tag выставляется в `ci-tag`
 
 ### `ci-tag`
 `default: '{{ commit }}'`
 
-Used instead of `tag` when `ci` is equal to `true`. Supports similar templating [details](#tag)
+Используется вместо `tag` когда `ci` равен `true`. Поддерживает аналогичную шаблонизацию [подробности](#tag)
 
 
 ### `build-opts`
-Accepts a data structure in yaml format of the following form:
+Принимает структуру данных в yaml формате следующего вида:
 ```yaml
 - name: <image1>
   target: t1
@@ -626,34 +626,34 @@ Accepts a data structure in yaml format of the following form:
 - name: <imagen>
 ...
 ```
-The structure represents an array, where each element is an image and additional parameters for it.
+Структура представляет из себя массив, где каждый элемент это образ и дополнительные параметры к нему.
 
-* `name` - image that needs to be built. 
+* `name` - образ который требуется собрать. 
 
-* `args` (optional) - list of arguments. Supports templating like in tags ([details](#tag))
-* `copy-files` (optional) - files that need to be copied from the image after building  
-* `target` (optional) - if specified, `--target target-value` is added to the build command
-* `file` (optional) - if specified, the value from this field is substituted in `--file`
-* `envs` (optional) - creates specified environment variables before starting the build, useful when used together with `secrets`
-* `secrets` (optional) - adds `--secret` arguments. See more details in the docker documentation: https://docs.docker.com/build/building/secrets/
-* `platforms` (optional) - adds `--platform platforms` to the build arguments. Platforms should be comma-separated. Example: `linux/amd64,linux/arm64`. Documentation https://docs.docker.com/build/building/multi-platform/
-* `latest` (optional) - whether to additionally push the latest tag or not
-* `repo-image-name` (optional) - pushes the image under the repository name
+* `args` (опционально) - список аргументов. Поддерживает шаблонизацию как в тегах ([подробности](#tag))
+* `copy-files` (опционально) - файлы которые требуется скопировать из образа после сборки  
+* `target` (опционально) - если указано то добавляется `--target target-value` в команду сборки
+* `file` (опционально) - если указано то в `--file` подставляется значение из этого поля
+* `envs` (опционально) - создает указанные переменные среды перед запуском сборки, полезно при использовании совместно с `secrets`
+* `secrets` (опционально) - добавляет аргументы `--secret`. Подробнее смотрите в докумнтации docker: https://docs.docker.com/build/building/secrets/
+* `platforms` (опционально) - добавляет в аргументы сборки `--platform platforms`. Платформы должны перичислены через запятую. Пример: `linux/amd64,linux/arm64`. Документация https://docs.docker.com/build/building/multi-platform/
+* `latest` (опционально) - пушить дополнительно latest тег или нет
+* `repo-image-name` (опциноально) - пушит образ под именем репозитория
 
 ## Outputs 
 
 ### `copy-files`
 
-List of files in JSON format: `["path/to/file1", "path/to/file2", ...]`, paths to files that were copied from containers specified in the `copy-files` option for images in `build-opts`.
+Список файлов в JSON формате: `["path/to/file1", "path/to/file2", ...]`, пути до файлов, которые были скопированы из контейнеров указанные в опции `copy-files` для образов в `build-opts`.
 
 ### `pushed-images`
 
-List of images pushed to the registry in JSON format: `["example.com/registry/image1:tag", "example.com/registry/image2:tag", ...]`
+Список запушенных в registry образов в JSON формате: `["example.com/registry/image1:tag", "example.com/registry/image2:tag", ...]`
 
 ### `built-images`
 
-Built images in JSON format: `{"image1": "example.com/registry/image1:tag", "image2": "example.com/registry/image2:tag", ...}`
-This is useful if you need to run a container from a built image later in the pipeline
+Собранные образы в JSON формате: `{"image1": "example.com/registry/image1:tag", "image2": "example.com/registry/image2:tag", ...}`
+Это удобно использовать если далее в пайплайне потребуется запустить контейнер из собранного образа
 ```yaml
       - uses: identw/build-images-action@main
         id: build-images
@@ -675,4 +675,4 @@ This is useful if you need to run a container from a built image later in the pi
 
 ### `build-opts`
 
-Passes to outputs the same thing that came in the input with the same name
+Проброс в outputs того же самого что пришло в одноименную опцию в inputs
