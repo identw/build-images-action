@@ -39,6 +39,10 @@ inputs:
     description: 'override repo name'
     required: false
     default: ''
+  image-naming-strategy: 
+    description: 'image naming strategy <multi-repo|single-repo>'
+    required: false
+    default: 'multi-repo'
   cache-from:
     description: 'cache from https://docs.docker.com/build/ci/github-actions/cache/'
     required: false
@@ -104,3 +108,4 @@ runs:
         cache-from: ${{ inputs.cache-from }}
         cache-to: ${{ inputs.cache-to }}
         repo-name: ${{ inputs.repo-name }}
+        image-naming-strategy: ${{ inputs.image-naming-strategy }}

@@ -11,21 +11,22 @@ import {generateRandomString, runCommand, createDir, template} from './lib.js';
 
 async function main() {
   try {
-    const context         = github.context;
-    const registry        = core.getInput('registry');
-    const githubToken     = core.getInput('github-token');
-    const tag             = core.getInput('tag');
-    const latest          = core.getInput('latest');
-    let operation         = core.getInput('operation');
-    const platforms       = core.getInput('platforms');
-    const cacheFrom       = core.getInput('cache-from');
-    const cacheTo         = core.getInput('cache-to');
-    const ci              = core.getInput('ci');
-    const ciTag           = core.getInput('ci-tag');
-    let   repoName        = core.getInput('repo-name');
-    const org             = context.payload.repository.owner.login.toLowerCase();
-    const buildOpts       = yamlParse(core.getInput('build-opts'));
-    const githubRegistry  = 'ghcr.io';
+    const context             = github.context;
+    const registry            = core.getInput('registry');
+    const githubToken         = core.getInput('github-token');
+    const tag                 = core.getInput('tag');
+    const latest              = core.getInput('latest');
+    let operation             = core.getInput('operation');
+    const platforms           = core.getInput('platforms');
+    const cacheFrom           = core.getInput('cache-from');
+    const cacheTo             = core.getInput('cache-to');
+    const ci                  = core.getInput('ci');
+    const ciTag               = core.getInput('ci-tag');
+    let imageNamingStrategy   = core.getInput('image-naming-strategy');
+    let repoName              = core.getInput('repo-name');
+    const org                 = context.payload.repository.owner.login.toLowerCase();
+    const buildOpts           = yamlParse(core.getInput('build-opts'));
+    const githubRegistry      = 'ghcr.io';
 
     const defaultRepoName = context.payload.repository.name.toLowerCase();
 
@@ -39,6 +40,19 @@ async function main() {
     }
     repoName = repoName.toLowerCase();
     repoName = repoName.replaceAll('{{ repo }}', defaultRepoName);
+
+    if (imageNamingStrategy !== 'multi-repo' && imageNamingStrategy !== 'single-repo') {
+      throw new Error(`Invalid imageNamingStrategy: ${imageNamingStrategy}`);
+    }
+
+    if (core.isDebug()) {
+      console.log(`imageNamingStrategy: ${imageNamingStrategy}`);
+    }
+    
+    let orgPostfix = `/${org}`;
+    if (registry != githubRegistry) {
+      orgPostfix = '';
+    }
 
     if (!isMainThread) {
       // Worker треды:
@@ -74,33 +88,26 @@ async function main() {
         buildTag = `0000001-${generateRandomString(8)}`;
       }
 
-      let buildImage      = `${registry}/${repoName}/${image.name}:${buildTag}`;
+      let buildImage      = `${registry}${orgPostfix}/${repoName}/${image.name}:${buildTag}`;
       const buildTmpTag   = `${image.name}-${generateRandomString(8)}`;
       let prePushImageTag = `0000001-${generateRandomString(8)}`;
-      let pushImage       = `${registry}/${repoName}/${image.name}:${resultTag}`;
-      let pushImageLatest = `${registry}/${repoName}/${image.name}:latest`;
-      let prePushImage    = `${registry}/${repoName}/${image.name}:${prePushImageTag}`;
+      let pushImage       = `${registry}${orgPostfix}/${repoName}/${image.name}:${resultTag}`;
+      let pushImageLatest = `${registry}${orgPostfix}/${repoName}/${image.name}:latest`;
+      let prePushImage    = `${registry}${orgPostfix}/${repoName}/${image.name}:${prePushImageTag}`;
 
-      if (registry == githubRegistry) {
-        buildImage      = `${registry}/${org}/${repoName}:${image.name}-${buildTag}`;
-        pushImage       = `${registry}/${org}/${repoName}:${image.name}-${resultTag}`;
-        pushImageLatest = `${registry}/${org}/${repoName}:${image.name}-latest`;
-        prePushImage    = `${registry}/${org}/${repoName}:${image.name}-${prePushImageTag}`;
+      if (imageNamingStrategy === 'single-repo') {
+        buildImage      = `${registry}${orgPostfix}/${repoName}:${image.name}-${buildTag}`;
+        pushImage       = `${registry}${orgPostfix}/${repoName}:${image.name}-${resultTag}`;
+        pushImageLatest = `${registry}${orgPostfix}/${repoName}:${image.name}-latest`;
+        prePushImage    = `${registry}${orgPostfix}/${repoName}:${image.name}-${prePushImageTag}`;
         prePushImageTag = `${image.name}-${prePushImageTag}`;
       }
 
       if ('repo-image-name' in image && image['repo-image-name'] === true) {
-        buildImage      = `${registry}/${repoName}:${buildTag}`;
-        pushImage       = `${registry}/${repoName}:${resultTag}`;
-        pushImageLatest = `${registry}/${repoName}:latest`;
-        prePushImage    = `${registry}/${repoName}:${prePushImageTag}`;
-
-        if (registry == githubRegistry) {
-          buildImage      = `${registry}/${org}/${repoName}:${buildTag}`;
-          pushImage       = `${registry}/${org}/${repoName}:${resultTag}`;
-          pushImageLatest = `${registry}/${org}/${repoName}:latest`;
-          prePushImage    = `${registry}/${org}/${repoName}:${prePushImageTag}`;
-        }
+        buildImage      = `${registry}${orgPostfix}/${repoName}:${buildTag}`;
+        pushImage       = `${registry}${orgPostfix}/${repoName}:${resultTag}`;
+        pushImageLatest = `${registry}${orgPostfix}/${repoName}:latest`;
+        prePushImage    = `${registry}${orgPostfix}/${repoName}:${prePushImageTag}`;
       }
 
       outputBuiltImages[image.name] = buildImage;
