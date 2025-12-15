@@ -35,7 +35,8 @@ Dockerfile'ы должны находится в одноименных папк
 
 В поле tag поддерживается небольшая шаблонизация ([подробности](#tag))
 
-Если в качестве registry будет передан ghcr.io, то имена образов будут формироваться по следующему принципу: `ghcr.io/<org-name>/<repo-name>:<image-name>-<tag>`:
+Если указать опцию `image-naming-strategy: single-repo`, то имена образов будут формироваться по следующему принципу: `registry/<repo-name>:<image-name>-<tag>`:
+
 ```yaml
 # nosemgrep
 - uses: identw/build-images-action@main
@@ -323,7 +324,7 @@ RUN --mount=type=secret,id=ANDROID_KEYSTORE \
       - name: nginx
 ```
 
-Если будет использоваться ghcr.io, то в случае нескольких образов latest тег будет запушен следующим образом: `ghcr.io/<org-name>/<repo-name>:<image-name>-latest`
+Если будет использоваться опция `image-naming-strategy: single-repo`,  то в случае нескольких образов latest тег будет запушен следующим образом: `ghcr.io/<org-name>/<repo-name>:<image-name>-latest`
 
 ### образ = имени репозитория
 
@@ -555,6 +556,15 @@ registry, указывать без протокола (например `exampl
 1. `{{ repo }}` - имя текущего репозитория (без owner'а или организации)
 
 В случае использования стандартного registry `ghcr.io` эта опция не на что не влияет. `repo-name` будет равен имени репозитория.
+
+### `image-naming-strategy`
+`default: 'multi-repo'`
+Может принимать значения: `multi-repo`, `single-repo`.  
+От этой опции зависит стратегия именования образов:
+1. `multi-repo`: `<registry>/<repo-name>/<image-name>:<tag>`
+1. `single-repo`: `<registry>/<repo-name>:<image-name>-<tag>`
+
+Для `single-repo` latest тег будет проставляться как `<registry>/<repo-name>:<image-name>-latest`
 
 ### `ci`
 `default: 'false'`

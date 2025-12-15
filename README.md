@@ -35,7 +35,7 @@ The `server` image also needs to pass the `PLATFORM` and `ENV` arguments. The re
 
 The tag field supports basic templating ([details](#tag))
 
-If ghcr.io is passed as the registry, the image names will be formed according to the following principle: `ghcr.io/<org-name>/<repo-name>:<image-name>-<tag>`:
+If the `image-naming-strategy: single-repo` option is specified, image names will be generated according to the following pattern: `<registry>/<repo-name>:<image-name>-<tag>`:
 ```yaml
 # nosemgrep
 - uses: identw/build-images-action@main
@@ -323,7 +323,7 @@ You can use cache-from and cache-to
       - name: nginx
 ```
 
-If ghcr.io is used, then in the case of multiple images, the latest tag will be pushed as follows: `ghcr.io/<org-name>/<repo-name>:<image-name>-latest`
+If the `image-naming-strategy: single-repo` option is used, then in the case of multiple images, the `latest` tag will be pushed as follows: `ghcr.io/<org-name>/<repo-name>:<image-name>-latest`
 
 ### image = repository name
 
@@ -555,6 +555,15 @@ Overwrites the part of the image name where the repository name is substituted: 
 1. `{{ repo }}` - current repository name (without owner or organization)
 
 If the standard registry `ghcr.io` is used, this option has no effect. `repo-name` will be equal to the repository name.
+
+### `image-naming-strategy`
+`default: 'multi-repo'`
+Can take the following values: `multi-repo`, `single-repo`.
+This option determines the image naming strategy:
+1. `multi-repo`: `<registry>/<repo-name>/<image-name>:<tag>`
+1. `single-repo`: `<registry>/<repo-name>:<image-name>:<tag>`
+
+For `single-repo`, the `latest` tag will be set as `<registry>/<repo-name>:<image-name>-latest`
 
 ### `ci`
 `default: 'false'`

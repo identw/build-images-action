@@ -37,6 +37,10 @@ inputs:
     description: 'override repo name'
     required: false
     default: ''
+  image-naming-strategy: 
+    description: 'image naming strategy <multi-repo|single-repo>'
+    required: false
+    default: 'multi-repo'
   ci:
     description: 'only build with tmp tag'
     required: false
